@@ -80,7 +80,7 @@ def update_data(primary_file, secondary_file, output_file, key, flag_add):
 
     # save data to file
     writer = csv.DictWriter(open(output_file, 'w'), delimiter=';', fieldnames=header_output)
-    writer.writeheader()
+    writer.writerow(dict(zip(header_output,header_output)))
     try:
         for row_p in DATA_PRIMARY:
             writer.writerow(row_p)
