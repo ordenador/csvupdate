@@ -47,10 +47,8 @@ def update_data(primary_file, secondary_file, output_file, key, flag_add, output
 
     # validation of output_fields
     for field in output_fields:
-        if not field in header_p:
-            sys.exit('field \'%s\', not exist in header CSV in file \'%s\'' % (field, primary_file))
-        elif not field in header_s:
-            sys.exit('field \'%s\', not exist in header CSV in file \'%s\'' % (field, secondary_file))
+        if not field in header_p + header_s:
+            sys.exit('field \'%s\', not exist in header CSV in files' % (field))
 
     # set key value. If not exist key argument is the first value of header
     if not key: key = header_p[0]
