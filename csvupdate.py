@@ -5,7 +5,7 @@ import csv  # work in python 2.6+
 
 
 # Global
-PROGRAM_VERSION = "%prog 15.21.02"
+PROGRAM_VERSION = "%prog 15.22.23"
 
 
 def validate_input_file(file_name):
@@ -23,31 +23,48 @@ def validate_output_file(file_name):
         sys.exit('file %s, not access to write' % file_name)
 
 
-def update_data(primary_file, secondary_file, output_file, key, flag_add):
+def update_data(primary_file, secondary_file, output_file, key, flag_add, output_fields):
     # list where store data
     DATA_PRIMARY = []
     DATA_SECONDARY = []
 
     # read file and obtain headers and data
-    data_p = csv.DictReader(open(primary_file, 'rb'), delimiter=';', quotechar='"')
-    data_s = csv.DictReader(open(secondary_file, 'rb'), delimiter=';', quotechar='"')
-    header_p = data_p.fieldnames
-    header_s = data_s.fieldnames
+    data_p = csv.DictReader(open(primary_file, 'rb'), delimiter=';')
+    data_s = csv.DictReader(open(secondary_file, 'rb'), delimiter=';')
+
+    # set key fields from files, and setup to lowercase
+    header_p = [x.lower() for x in data_p.fieldnames]
+    header_s = [x.lower() for x in data_s.fieldnames]
 
     # validation no string in header
     if '' in header_p: sys.exit('key \'\', is not valid in %s' % primary_file)
     if '' in header_s: sys.exit('key \'\', is not valid in %s' % secondary_file)
 
-    # if not exist key argument, is first value of header
+    # set output fields for write
+    if not output_fields:
+        header_diff = list(set(header_s).difference(set(header_p)))
+        output_fields = header_p + header_diff
+
+    # validation of output_fields
+    for field in output_fields:
+        if not field in header_p:
+            sys.exit('field \'%s\', not exist in header CSV in file \'%s\'' % (field, primary_file))
+        elif not field in header_s:
+            sys.exit('field \'%s\', not exist in header CSV in file \'%s\'' % (field, secondary_file))
+
+    # set key value. If not exist key argument is the first value of header
     if not key: key = header_p[0]
 
-    # validation of key
+    # validation of key value
     if key not in header_p: sys.exit('key %s, not exist in %s' % (key, primary_file))
     if key not in header_s: sys.exit('key %s, not exist in %s' % (key, secondary_file))
 
     # save data in global var DATA_PRIMARY as a list
     try:
         for row_p in data_p:
+            # set all key fields to lowercase
+            for field in row_p.keys(): row_p[field.lower()] = row_p.pop(field)
+            # list where store data
             DATA_PRIMARY.append(row_p)
             if None in row_p: del row_p[None]
     except csv.Error as e:
@@ -56,6 +73,9 @@ def update_data(primary_file, secondary_file, output_file, key, flag_add):
     # save data in global var DATA_SECONDARY as a list
     try:
         for row_s in data_s:
+            # set all key fields to lowercase
+            for field in row_s.keys(): row_s[field.lower()] = row_s.pop(field)
+            # list where store data
             DATA_SECONDARY.append(row_s)
             if None in row_s: del row_s[None]
     except csv.Error as e:
@@ -74,23 +94,27 @@ def update_data(primary_file, secondary_file, output_file, key, flag_add):
         if exist_in_primary == False and flag_add == True:
             DATA_PRIMARY.append(row_s)
 
-    # obtain header of output
-    header_diff = list(set(header_s).difference(set(header_p)))
-    header_output = header_p + header_diff
-
     # save data to file
-    writer = csv.DictWriter(open(output_file, 'w'), delimiter=';', fieldnames=header_output)
-    writer.writerow(dict(zip(header_output,header_output)))
+    writer = csv.DictWriter(open(output_file, 'w'), delimiter=';', fieldnames=output_fields)
+    writer.writerow(dict(zip(output_fields,output_fields)))
     try:
         for row_p in DATA_PRIMARY:
+            # save only keys that exist in header_output
+            for field in row_p.keys():
+                if not field in output_fields:
+                    del row_p[field]
             writer.writerow(row_p)
     except csv.Error, e:
         sys.exit('file %s' % output_file)
     print('All OK, please view file: %s' % os.path.abspath(output_file))
 
 
+def get_comma_separated_args(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
+
 def main():
-    parser = optparse.OptionParser(usage="Usage: %prog -p primary.csv -s secondary.csv -o output.csv [-k key] [-n]",
+    parser = optparse.OptionParser(usage="Usage: %prog -p primary.csv -s secondary.csv -o output.csv [-k key] [-n] [-f arg1,arg2,arg3...]",
                                    version=PROGRAM_VERSION)
     parser.add_option('-p', '--primary_file', help='input: primary file', dest='primary_file', type='string')
     parser.add_option('-s', '--secondary_file', help='input: secondary file', dest='secondary_file', type='string')
@@ -101,6 +125,8 @@ def main():
     parser.add_option('-n', '--no-add',
                       help='do not add the secondary input data does not exist if the primary input, by default data add',
                       dest='add', default=True, action='store_false')
+    parser.add_option('-f', '--output-fields', help='format output fields', dest='output_fields', type='string',
+                      action='callback', callback=get_comma_separated_args)
     (opts, args) = parser.parse_args()
 
     if opts.primary_file and opts.secondary_file and opts.output_file:
@@ -113,13 +139,13 @@ def main():
             sys.exit(
                 'primary file \'%s\' is same than secondary file \'%s\'' % (opts.primary_file, opts.secondary_file))
 
-        ## validate ouput
+        # validate output
         if opts.output_file == opts.primary_file:
             sys.exit('output file \'%s\' is same than primary file \'%s\'' % (opts.output_file, opts.primary_file))
         elif opts.output_file == opts.secondary_file:
             sys.exit('output file \'%s\' is same than secondary file \'%s\'' % (opts.output_file, opts.secondary_file))
 
-        update_data(opts.primary_file, opts.secondary_file, opts.output_file, opts.key, opts.add)
+        update_data(opts.primary_file, opts.secondary_file, opts.output_file, opts.key, opts.add, opts.output_fields)
     else:
         parser.print_help()
         sys.exit(-1)
