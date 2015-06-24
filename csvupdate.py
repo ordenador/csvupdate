@@ -23,14 +23,17 @@ def validate_output_file(file_name):
         sys.exit('file %s, not access to write' % file_name)
 
 
-def update_data(primary_file, secondary_file, output_file, key, flag_add, output_fields):
+def update_data(primary_file, secondary_file, output_file, key, flag_add, output_fields, delimiter):
     # list where store data
     DATA_PRIMARY = []
     DATA_SECONDARY = []
 
+    # set deliminter
+    if not delimiter: delimiter = ','
+
     # read file and obtain headers and data
-    data_p = csv.DictReader(open(primary_file, 'rb'), delimiter=';')
-    data_s = csv.DictReader(open(secondary_file, 'rb'), delimiter=';')
+    data_p = csv.DictReader(open(primary_file, 'rb'), delimiter=delimiter)
+    data_s = csv.DictReader(open(secondary_file, 'rb'), delimiter=delimiter)
 
     # set key fields from files, and setup to lowercase
     header_p = [x.lower() for x in data_p.fieldnames]
@@ -93,7 +96,7 @@ def update_data(primary_file, secondary_file, output_file, key, flag_add, output
             DATA_PRIMARY.append(row_s)
 
     # save data to file
-    writer = csv.DictWriter(open(output_file, 'w'), delimiter=';', fieldnames=output_fields)
+    writer = csv.DictWriter(open(output_file, 'w'), delimiter=delimiter, fieldnames=output_fields)
     writer.writerow(dict(zip(output_fields,output_fields)))
     try:
         for row_p in DATA_PRIMARY:
@@ -112,7 +115,7 @@ def get_comma_separated_args(option, opt, value, parser):
 
 
 def main():
-    parser = optparse.OptionParser(usage="Usage: %prog -p primary.csv -s secondary.csv -o output.csv [-k key] [-n] [-f arg1,arg2,arg3...]",
+    parser = optparse.OptionParser(usage="example usage: %prog -p primary.csv -s secondary.csv -o output.csv [-k key] [-n] [-f arg1,arg2,arg3...] [-d ';']",
                                    version=PROGRAM_VERSION)
     parser.add_option('-p', '--primary_file', help='input: primary file', dest='primary_file', type='string')
     parser.add_option('-s', '--secondary_file', help='input: secondary file', dest='secondary_file', type='string')
@@ -125,6 +128,7 @@ def main():
                       dest='add', default=True, action='store_false')
     parser.add_option('-f', '--output-fields', help='format output fields', dest='output_fields', type='string',
                       action='callback', callback=get_comma_separated_args)
+    parser.add_option('-d', '--delimiter', help='delimiter', dest='delimiter', type='string')
     (opts, args) = parser.parse_args()
 
     if opts.primary_file and opts.secondary_file and opts.output_file:
@@ -143,7 +147,7 @@ def main():
         elif opts.output_file == opts.secondary_file:
             sys.exit('output file \'%s\' is same than secondary file \'%s\'' % (opts.output_file, opts.secondary_file))
 
-        update_data(opts.primary_file, opts.secondary_file, opts.output_file, opts.key, opts.add, opts.output_fields)
+        update_data(opts.primary_file, opts.secondary_file, opts.output_file, opts.key, opts.add, opts.output_fields, opts.delimiter)
     else:
         parser.print_help()
         sys.exit(-1)

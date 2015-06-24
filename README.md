@@ -12,8 +12,8 @@ With this script you can:
 # Help
 
     # python csvupdate.py
-    Usage: csvupdate.py -p primary.csv -s secondary.csv -o output.csv [-k key] [-n] [-f arg1,arg2,arg3...]
-
+    Usage: example usage: csvupdate.py -p primary.csv -s secondary.csv -o output.csv [-k key] [-n] [-f arg1,arg2,arg3...] [-d ';']
+    
     Options:
       --version             show program's version number and exit
       -h, --help            show this help message and exit
@@ -29,11 +29,27 @@ With this script you can:
                             the primary input, by default data add
       -f OUTPUT_FIELDS, --output-fields=OUTPUT_FIELDS
                             format output fields
+      -d DELIMITER, --delimiter=DELIMITER
+                            delimiter
 
 
 
-# Basic example:
-In this example you can conglomerate al data from 2 files
+# Examples:
+Basic, In this example you can obtain all data from 2 files: output.csv
 
-    python csvupdate.py -p primary.csv -s secondary.csv -o output.csv
+    python ./csvupdate.py -p primary.csv -s secondary.csv -o output.csv
 
+Select Fields, "-f": output_fields.csv
+    
+    python ./csvupdate.py -p primary.csv -s secondary.csv -o output_fields.csv -f first_name,last_name,email
+    
+No add new row, but updating data, "-n": output_fields.csv
+    
+    python ./csvupdate.py -p primary_example_no_add.csv -s secondary_example_no_add.csv -o output_no_add.csv -n
+    
+Key, "-k": output_key.csv
+    
+    python ./csvupdate.py -p primary_example_key.csv -s secondary_example_key.csv -o output_key.csv -k email
+    
+    
+    
